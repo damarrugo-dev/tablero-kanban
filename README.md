@@ -28,4 +28,4 @@ Es un sitio estático (`index.html`, `app.js`, `styles.css`) publicado con GitHu
 5. Rueda ⚙ (arriba a la izquierda) → **Configuración del proyecto** → abajo en *Tus apps* pulsa el ícono **`</>`** (Web) → apodo `tablero` → **Registrar app**.
 6. Copia el bloque `const firebaseConfig = { ... }` que aparece y pégalo en `config.js` (reemplazando `null`).
 
-> Las reglas permiten que cualquier persona con el enlace vea y modifique el tablero. No guardes información sensible en él.
+> Para entrar, cada persona escribe su correo @hitss.com o @anava.com y abre el enlace que le llega. Las reglas de `firestore.rules` solo permiten esos correos (activar en Firebase: Authentication → Correo electrónico/contraseña → Vínculo de correo electrónico, y agregar `damarrugo-dev.github.io` en Dominios autorizados).
