@@ -20,6 +20,7 @@
       <button id="addLane" class="btn">+ Carril</button>
       <button id="shareBtn" class="btn">Compartir</button>
       <button id="exportBtn" class="btn">Exportar</button>
+      <button id="accessBtn" class="btn" hidden>Accesos</button>
       <button id="userChip" class="user-chip" title="Cambiar mi nombre"></button>
     </div>
   </header>
@@ -53,6 +54,16 @@
   <!-- Ventana de una tarjeta -->
   <dialog id="cardDialog" class="card-dialog">
     <div id="cardDialogBody"></div>
+  </dialog>
+
+  <!-- Registro de accesos (solo administradores) -->
+  <dialog id="accessDialog" class="access-dialog">
+    <div class="dlg-head">
+      <h2>Control de acceso</h2>
+      <form method="dialog"><button class="icon-btn close" aria-label="Cerrar">✕</button></form>
+    </div>
+    <p class="hint">Quién pidió el enlace para entrar, quién entró al tablero y quién intentó con un correo no permitido.</p>
+    <div id="accessBody"></div>
   </dialog>
 
   <!-- Ventana de pregunta / confirmación -->

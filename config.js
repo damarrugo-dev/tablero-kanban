@@ -15,9 +15,11 @@ export const firebaseConfig = {
 // export const login = {
 //   metodo: "correo",        // "correo": llega un enlace al correo | "microsoft": cuenta de Microsoft
 //   dominios: ["miempresa.com"] // solo se aceptan correos de estos dominios
+//   administradores: ["tu@miempresa.com"] // ven el registro de accesos (botón "Accesos")
 //   // tenant: "..."         // solo para "microsoft": ID del directorio de Microsoft Entra
 // };
 export const login = {
   metodo: "correo",
-  dominios: ["hitss.com", "anava.com"]
+  dominios: ["hitss.com", "anava.com"],
+  administradores: ["marrugod@hitss.com"] // pueden ver el control de acceso
 };

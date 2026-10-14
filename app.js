@@ -147,8 +147,11 @@ async function createFirebaseStore(cfg) {
   const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
   const fs = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
   const app = initializeApp(cfg);
-  if (login) await signIn(app, V);
   const db = fs.getFirestore(app);
+  if (login) {
+    accessLog = createAccessLog(fs, db);
+    await signIn(app, V);
+  }
   const boardRef = fs.doc(db, 'tableros', BOARD_ID);
   const cardsCol = fs.collection(db, 'tableros', BOARD_ID, 'tarjetas');
   return {
@@ -222,13 +225,17 @@ async function signIn(app, V) {
     $('#loginEmailForm').onsubmit = async e => {
       e.preventDefault();
       const email = $('#loginEmail').value.trim().toLowerCase();
-      if (!allowed(email)) return say(`Usa tu correo ${domainText}.`);
+      if (!allowed(email)) {
+        accessLog.record('rechazado', email);
+        return say(`Usa tu correo ${domainText}.`);
+      }
       const btn = $('#loginSend');
       btn.disabled = true;
       try {
         const url = new URL(location.href);
         url.hash = '';
         await au.sendSignInLinkToEmail(auth, email, { url: url.href, handleCodeInApp: true });
+        accessLog.record('solicitud', email);
         try { localStorage.setItem(EMAIL_KEY, email); } catch {}
         say(`Listo. Revisa tu correo ${email} (también la carpeta de spam) y abre el enlace en este mismo dispositivo.`, true);
       } catch (err) {
@@ -250,6 +257,8 @@ async function signIn(app, V) {
     au.onAuthStateChanged(auth, user => {
       if (user && allowed(user.email)) {
         signedInEmail = user.email;
+        accessLog.recordEntry(user);
+        if (isAdmin(user.email)) $('#accessBtn').hidden = false;
         signedInName = user.displayName || null;
         renderUser();
         gate.hidden = true;
@@ -261,6 +270,99 @@ async function signIn(app, V) {
       if (user) say(`La cuenta ${user.email || ''} no tiene acceso. Entra con tu correo ${domainText}.`);
     });
   });
+}
+
+// ---------- Control de acceso ----------
+// Guarda en Firestore (colección "accesos") quién pide el enlace, quién entra y quién es rechazado.
+// Solo los administradores de config.js pueden ver el registro.
+let accessLog = { record() {}, recordEntry() {}, list: async () => [] };
+const isAdmin = email => (login?.administradores || []).map(a => a.toLowerCase()).includes((email || '').toLowerCase());
+const EVENT_TEXT = { solicitud: 'Pidió el enlace', ingreso: 'Entró al tablero', rechazado: 'Rechazado (correo no permitido)' };
+
+function createAccessLog(fs, db) {
+  const col = fs.collection(db, 'accesos');
+  const browser = () => {
+    const ua = navigator.userAgent;
+    const device = /Mobi|Android|iPhone|iPad/i.test(ua) ? 'Celular' : 'Computador';
+    const name = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Otro';
+    return `${device} · ${name}`;
+  };
+  const write = data => fs.addDoc(col, { ...data, tablero: BOARD_ID, navegador: browser(), fecha: fs.serverTimestamp() })
+    .catch(err => console.warn('No se pudo registrar el acceso', err));
+  return {
+    record: (tipo, email) => write({ tipo, email: (email || '').toLowerCase().slice(0, 200) }),
+    // Una vez por visita (pestaña abierta), no en cada recarga
+    recordEntry(user) {
+      const key = 'kanban:ingreso-registrado';
+      try { if (sessionStorage.getItem(key) === user.uid) return; sessionStorage.setItem(key, user.uid); } catch {}
+      write({ tipo: 'ingreso', email: (user.email || '').toLowerCase(), nombre: me() === user.email ? '' : me() });
+    },
+    async list() {
+      const q = fs.query(col, fs.orderBy('fecha', 'desc'), fs.limit(1000));
+      const snap = await fs.getDocs(q);
+      return snap.docs.map(d => { const x = d.data(); return { ...x, fecha: x.fecha?.toDate?.() || null }; });
+    },
+  };
+}
+
+async function openAccessLog() {
+  const d = $('#accessDialog');
+  const body = $('#accessBody');
+  body.textContent = 'Cargando…';
+  if (!d.open) d.showModal();
+  let rows;
+  try { rows = await accessLog.list(); }
+  catch (err) {
+    console.error(err);
+    body.textContent = 'No se pudo leer el registro. Revisa que las reglas de Firestore estén publicadas.';
+    return;
+  }
+  const fmt = dt => dt ? dt.toLocaleString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
+
+  // Resumen por persona
+  const people = new Map();
+  for (const r of rows) {
+    const p = people.get(r.email) || { email: r.email, nombre: '', solicitudes: 0, ingresos: 0, rechazos: 0, primero: null, ultimo: null };
+    if (r.nombre) p.nombre = p.nombre || r.nombre;
+    if (r.tipo === 'solicitud') p.solicitudes++;
+    if (r.tipo === 'rechazado') p.rechazos++;
+    if (r.tipo === 'ingreso') {
+      p.ingresos++;
+      if (r.fecha && (!p.ultimo || r.fecha > p.ultimo)) p.ultimo = r.fecha;
+      if (r.fecha && (!p.primero || r.fecha < p.primero)) p.primero = r.fecha;
+    }
+    people.set(r.email, p);
+  }
+  const summary = [...people.values()].sort((a, b) => (b.ultimo || 0) - (a.ultimo || 0));
+
+  let tab = 'personas';
+  const draw = () => {
+    body.textContent = '';
+    body.append(
+      h('div', { class: 'tabs' },
+        h('button', { class: 'btn' + (tab === 'personas' ? ' primary' : ''), onclick: () => { tab = 'personas'; draw(); } }, `Personas (${summary.length})`),
+        h('button', { class: 'btn' + (tab === 'eventos' ? ' primary' : ''), onclick: () => { tab = 'eventos'; draw(); } }, `Movimientos (${rows.length})`),
+        h('button', { class: 'btn', onclick: () => exportAccess(rows) }, 'Exportar')),
+      tab === 'personas'
+        ? h('div', { class: 'table-wrap' }, h('table', { class: 'access-table' },
+            h('thead', {}, h('tr', {}, ['Correo', 'Nombre', 'Pidió enlace', 'Entradas', 'Primera entrada', 'Última entrada'].map(t => h('th', {}, t)))),
+            h('tbody', {}, summary.map(p => h('tr', { class: p.rechazos && !p.ingresos ? 'denied' : '' },
+              h('td', {}, p.email), h('td', {}, p.nombre || '—'), h('td', {}, p.solicitudes + (p.rechazos ? ` (${p.rechazos} rechazado)` : '')),
+              h('td', {}, p.ingresos), h('td', {}, fmt(p.primero)), h('td', {}, fmt(p.ultimo)))))))
+        : h('div', { class: 'table-wrap' }, h('table', { class: 'access-table' },
+            h('thead', {}, h('tr', {}, ['Fecha', 'Correo', 'Qué pasó', 'Dispositivo'].map(t => h('th', {}, t)))),
+            h('tbody', {}, rows.map(r => h('tr', { class: r.tipo === 'rechazado' ? 'denied' : '' },
+              h('td', {}, fmt(r.fecha)), h('td', {}, r.email + (r.nombre ? ` (${r.nombre})` : '')),
+              h('td', {}, EVENT_TEXT[r.tipo] || r.tipo), h('td', {}, r.navegador || '—')))))),
+      rows.length ? '' : h('p', { class: 'muted' }, 'Todavía no hay registros.'));
+  };
+  draw();
+}
+
+function exportAccess(rows) {
+  const out = [['Fecha', 'Correo', 'Nombre', 'Qué pasó', 'Dispositivo', 'Tablero']];
+  for (const r of rows) out.push([r.fecha ? r.fecha.toLocaleString('es-CO') : '', r.email, r.nombre || '', EVENT_TEXT[r.tipo] || r.tipo, r.navegador || '', r.tablero || '']);
+  downloadCsv(out, `accesos-${new Date().toISOString().slice(0, 10)}.csv`);
 }
 
 // Modo de prueba: guarda en este navegador
@@ -711,9 +813,14 @@ function exportCsv() {
         days.toFixed(1).replace('.', ','), e.by, colName(p.col), laneName(p.lane), c.description]);
     }
   }
+  downloadCsv(rows, `seguimiento-${BOARD_ID}-${new Date().toISOString().slice(0, 10)}.csv`);
+}
+
+// Archivo CSV que Excel abre con tildes y columnas bien separadas
+function downloadCsv(rows, filename) {
   const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-  const a = h('a', { href: URL.createObjectURL(blob), download: `seguimiento-${BOARD_ID}-${new Date().toISOString().slice(0, 10)}.csv` });
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = h('a', { href: URL.createObjectURL(blob), download: filename });
   document.body.append(a);
   a.click();
   a.remove();
@@ -732,6 +839,7 @@ function wireUi() {
   $('#addLane').onclick = addLane;
   $('#shareBtn').onclick = share;
   $('#exportBtn').onclick = exportCsv;
+  $('#accessBtn').onclick = openAccessLog;
   $('#userChip').onclick = () => askName(false);
   $('#boardTitle').onchange = e => saveBoard({ title: e.target.value.trim() || 'Mi tablero' });
   $('#search').oninput = e => { filters.q = e.target.value.trim().toLowerCase(); render(); };

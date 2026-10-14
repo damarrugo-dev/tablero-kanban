@@ -249,6 +249,18 @@ textarea { resize: vertical; }
 .login-form input { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--bg); }
 .login-form .btn { height: 42px; font-weight: 600; }
 
+/* Control de acceso */
+.access-dialog { width: min(980px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; padding: 0 20px 20px; }
+.access-dialog .dlg-head { margin-bottom: 8px; }
+.access-dialog h2 { flex: 1; margin: 0; font-size: 20px; }
+.access-dialog .hint { margin-bottom: 12px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.table-wrap { overflow-x: auto; }
+.access-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.access-table th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 700; padding: 8px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+.access-table td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.access-table tr.denied td { color: var(--danger); }
+
 @media (max-width: 720px) {
   :root { --lane-w: 110px; --col-w: 240px; }
   .topbar { padding: 8px 16px; }

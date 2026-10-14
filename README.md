@@ -29,3 +29,7 @@ Es un sitio estático (`index.html`, `app.js`, `styles.css`) publicado con GitHu
 6. Copia el bloque `const firebaseConfig = { ... }` que aparece y pégalo en `config.js` (reemplazando `null`).
 
 > Para entrar, cada persona escribe su correo @hitss.com o @anava.com y abre el enlace que le llega. Las reglas de `firestore.rules` solo permiten esos correos (activar en Firebase: Authentication → Correo electrónico/contraseña → Vínculo de correo electrónico, y agregar `damarrugo-dev.github.io` en Dominios autorizados).
+
+## Control de acceso
+
+Cada vez que alguien pide el enlace para entrar, entra al tablero o intenta con un correo no permitido, queda registrado en Firestore (colección `accesos`). Los administradores de `config.js` (`administradores`) ven el botón **Accesos** con el resumen por persona, el detalle de movimientos y la opción de exportarlo a Excel. Las reglas de `firestore.rules` impiden que alguien cambie o borre ese registro.
