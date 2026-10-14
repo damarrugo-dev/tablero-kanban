@@ -1,4 +1,4 @@
-import { firebaseConfig } from './config.js';
+import { firebaseConfig, login } from './config.js';
 
 // ---------- Utilidades ----------
 const $ = (s, el = document) => el.querySelector(s);
@@ -112,8 +112,12 @@ function closeMenu() { document.querySelectorAll('.menu').forEach(m => m.remove(
 
 // ---------- Nombre de la persona ----------
 const USER_KEY = 'kanban:usuario';
+let signedInName = null; // con inicio de sesión de Microsoft, el nombre viene de la cuenta
+let signedInEmail = null;
 function me() {
-  try { return localStorage.getItem(USER_KEY) || 'Anónimo'; } catch { return 'Anónimo'; }
+  if (signedInName) return signedInName;
+  const fallback = signedInEmail || 'Anónimo';
+  try { return localStorage.getItem(USER_KEY) || fallback; } catch { return fallback; }
 }
 async function askName(first = false) {
   const name = await ask({
@@ -142,7 +146,9 @@ async function createFirebaseStore(cfg) {
   const V = '10.12.2';
   const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
   const fs = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
-  const db = fs.getFirestore(initializeApp(cfg));
+  const app = initializeApp(cfg);
+  if (login) await signIn(app, V);
+  const db = fs.getFirestore(app);
   const boardRef = fs.doc(db, 'tableros', BOARD_ID);
   const cardsCol = fs.collection(db, 'tableros', BOARD_ID, 'tarjetas');
   return {
@@ -163,6 +169,98 @@ async function createFirebaseStore(cfg) {
     updateCard: (id, patch) => fs.updateDoc(fs.doc(cardsCol, id), patch),
     deleteCard: id => fs.deleteDoc(fs.doc(cardsCol, id)),
   };
+}
+
+// Inicio de sesión: solo entran correos del dominio de la empresa.
+// login.metodo = "correo": la persona recibe un enlace en su correo y entra con él.
+// login.metodo = "microsoft": entra con su cuenta de Microsoft (requiere registrar la app en Microsoft Entra).
+async function signIn(app, V) {
+  const au = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
+  const auth = au.getAuth(app);
+  const domains = [].concat(login.dominios || login.dominio || []).map(d => d.toLowerCase().trim().replace(/^@/, '')).filter(Boolean);
+  const domainText = domains.length ? domains.map(d => '@' + d).join(' o ') : 'de la empresa';
+  const allowed = email => !domains.length || domains.some(d => (email || '').toLowerCase().endsWith('@' + d));
+  const EMAIL_KEY = 'kanban:correo-para-entrar';
+
+  const gate = $('#loginGate');
+  const msg = $('#loginMsg');
+  const signOutBtn = $('#loginSignOut');
+  const say = (text, ok = false) => { msg.textContent = text; msg.classList.toggle('ok', ok); };
+  $('#loginDomain').textContent = domainText;
+
+  if (login.metodo === 'microsoft') {
+    const provider = new au.OAuthProvider('microsoft.com');
+    provider.setCustomParameters({ tenant: login.tenant || 'organizations', prompt: 'select_account' });
+    await au.getRedirectResult(auth).catch(err => console.error(err));
+    $('#loginMs').hidden = false;
+    $('#loginBtn').onclick = async () => {
+      say('');
+      try { await au.signInWithPopup(auth, provider); }
+      catch (err) {
+        if (['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment'].includes(err.code)) return au.signInWithRedirect(auth, provider);
+        if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') say('No se pudo iniciar sesión: ' + (err.message || err.code));
+      }
+    };
+  } else {
+    // Volvió desde el enlace del correo
+    if (au.isSignInWithEmailLink(auth, location.href)) {
+      let email = '';
+      try { email = localStorage.getItem(EMAIL_KEY) || ''; } catch {}
+      if (!email) email = await ask({ title: 'Confirma tu correo', hint: 'Escribe el mismo correo al que llegó el enlace.' }) || '';
+      try {
+        await au.signInWithEmailLink(auth, email, location.href);
+        try { localStorage.removeItem(EMAIL_KEY); } catch {}
+      } catch (err) {
+        console.error(err);
+        say('El enlace ya se usó o venció. Pide uno nuevo.');
+      }
+      const clean = new URL(location.href);
+      clean.search = BOARD_ID === 'principal' ? '' : `?tablero=${BOARD_ID}`;
+      history.replaceState(null, '', clean.href);
+    }
+    $('#loginEmailForm').hidden = false;
+    $('#loginEmailForm').onsubmit = async e => {
+      e.preventDefault();
+      const email = $('#loginEmail').value.trim().toLowerCase();
+      if (!allowed(email)) return say(`Usa tu correo ${domainText}.`);
+      const btn = $('#loginSend');
+      btn.disabled = true;
+      try {
+        const url = new URL(location.href);
+        url.hash = '';
+        await au.sendSignInLinkToEmail(auth, email, { url: url.href, handleCodeInApp: true });
+        try { localStorage.setItem(EMAIL_KEY, email); } catch {}
+        say(`Listo. Revisa tu correo ${email} (también la carpeta de spam) y abre el enlace en este mismo dispositivo.`, true);
+      } catch (err) {
+        console.error(err);
+        say('No se pudo enviar el enlace: ' + (err.message || err.code));
+      } finally { btn.disabled = false; }
+    };
+  }
+
+  signOutBtn.onclick = () => au.signOut(auth);
+  $('#userChip').onclick = e => showMenu(e.currentTarget, [
+    { label: auth.currentUser?.email || '', disabled: true, action: () => {} },
+    { label: 'Cambiar mi nombre', action: () => askName(false) },
+    { label: 'Cerrar sesión', action: () => au.signOut(auth).then(() => location.reload()) },
+  ]);
+
+  await auth.authStateReady();
+  return new Promise(resolve => {
+    au.onAuthStateChanged(auth, user => {
+      if (user && allowed(user.email)) {
+        signedInEmail = user.email;
+        signedInName = user.displayName || null;
+        renderUser();
+        gate.hidden = true;
+        resolve(user);
+        return;
+      }
+      gate.hidden = false;
+      signOutBtn.hidden = !user;
+      if (user) say(`La cuenta ${user.email || ''} no tiene acceso. Entra con tu correo ${domainText}.`);
+    });
+  });
 }
 
 // Modo de prueba: guarda en este navegador
@@ -674,10 +772,10 @@ async function start() {
       console.error(err);
       const denied = err?.code === 'permission-denied';
       showBanner(denied
-        ? 'La base de datos no permite el acceso. Hay que publicar las reglas de Firestore (ver instrucciones del README).'
+        ? (login ? 'Tu cuenta no tiene permiso para ver este tablero.' : 'La base de datos no permite el acceso. Hay que publicar las reglas de Firestore (ver instrucciones del README).')
         : 'Problema de conexión con la base de datos: ' + (err?.message || err), 'error');
     });
-  try { if (!localStorage.getItem(USER_KEY)) askName(true); } catch {}
+  try { if (!signedInName && !localStorage.getItem(USER_KEY)) askName(true); } catch {}
 }
 
 start();

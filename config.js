@@ -8,3 +8,16 @@ export const firebaseConfig = {
   messagingSenderId: "670983517801",
   appId: "1:670983517801:web:f2918705cfdc983870d4f8"
 };
+
+// Inicio de sesión: solo entran personas con correo de la empresa.
+// En null, cualquiera con el enlace entra sin iniciar sesión.
+// Para activarlo:
+// export const login = {
+//   metodo: "correo",        // "correo": llega un enlace al correo | "microsoft": cuenta de Microsoft
+//   dominios: ["miempresa.com"] // solo se aceptan correos de estos dominios
+//   // tenant: "..."         // solo para "microsoft": ID del directorio de Microsoft Entra
+// };
+export const login = {
+  metodo: "correo",
+  dominios: ["hitss.com", "anava.com"]
+};

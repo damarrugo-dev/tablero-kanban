@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Solo personas que iniciaron sesión con un correo de la empresa (enlace al correo o Microsoft).
+    function esDeLaEmpresa() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email.lower().matches('.*@(hitss|anava)[.]com$')
+        // correo confirmado (enlace al correo) o cuenta de Microsoft
+        && (request.auth.token.email_verified == true
+            || request.auth.token.firebase.sign_in_provider == 'microsoft.com');
+    }
+    match /tableros/{tablero} {
+      allow read, write: if esDeLaEmpresa();
+      match /tarjetas/{tarjeta} {
+        allow read, write: if esDeLaEmpresa();
+      }
+    }
+  }
+}
