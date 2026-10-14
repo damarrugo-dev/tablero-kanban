@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Solo personas que iniciaron sesión con un correo de la empresa.
+    // Cambia miempresa[.]com por el dominio real (el punto se escribe [.]).
+    function esDeLaEmpresa() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email.lower().matches('.*@miempresa[.]com$');
+    }
+    match /tableros/{tablero} {
+      allow read, write: if esDeLaEmpresa();
+      match /tarjetas/{tarjeta} {
+        allow read, write: if esDeLaEmpresa();
+      }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { firebaseConfig } from './config.js';
+import { firebaseConfig, loginMicrosoft } from './config.js';
 
 // ---------- Utilidades ----------
 const $ = (s, el = document) => el.querySelector(s);
@@ -112,7 +112,9 @@ function closeMenu() { document.querySelectorAll('.menu').forEach(m => m.remove(
 
 // ---------- Nombre de la persona ----------
 const USER_KEY = 'kanban:usuario';
+let signedInName = null; // con inicio de sesión de Microsoft, el nombre viene de la cuenta
 function me() {
+  if (signedInName) return signedInName;
   try { return localStorage.getItem(USER_KEY) || 'Anónimo'; } catch { return 'Anónimo'; }
 }
 async function askName(first = false) {
@@ -142,7 +144,9 @@ async function createFirebaseStore(cfg) {
   const V = '10.12.2';
   const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
   const fs = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
-  const db = fs.getFirestore(initializeApp(cfg));
+  const app = initializeApp(cfg);
+  if (loginMicrosoft) await signInWithMicrosoft(app, V);
+  const db = fs.getFirestore(app);
   const boardRef = fs.doc(db, 'tableros', BOARD_ID);
   const cardsCol = fs.collection(db, 'tableros', BOARD_ID, 'tarjetas');
   return {
@@ -163,6 +167,51 @@ async function createFirebaseStore(cfg) {
     updateCard: (id, patch) => fs.updateDoc(fs.doc(cardsCol, id), patch),
     deleteCard: id => fs.deleteDoc(fs.doc(cardsCol, id)),
   };
+}
+
+// Inicio de sesión con la cuenta corporativa de Microsoft. Espera hasta que haya una sesión válida.
+async function signInWithMicrosoft(app, V) {
+  const au = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
+  const auth = au.getAuth(app);
+  const provider = new au.OAuthProvider('microsoft.com');
+  provider.setCustomParameters({ tenant: loginMicrosoft.tenant || 'organizations', prompt: 'select_account' });
+  const domain = (loginMicrosoft.domain || '').toLowerCase().replace(/^@/, '');
+  const allowed = u => !domain || (u.email || '').toLowerCase().endsWith('@' + domain);
+  await au.getRedirectResult(auth).catch(err => console.error(err));
+  await auth.authStateReady();
+
+  const gate = $('#loginGate');
+  const msg = $('#loginMsg');
+  const signOutBtn = $('#loginSignOut');
+  $('#loginDomain').textContent = domain ? `@${domain}` : 'de la empresa';
+  $('#loginBtn').onclick = async () => {
+    msg.textContent = '';
+    try { await au.signInWithPopup(auth, provider); }
+    catch (err) {
+      if (['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment'].includes(err.code)) return au.signInWithRedirect(auth, provider);
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') msg.textContent = 'No se pudo iniciar sesión: ' + (err.message || err.code);
+    }
+  };
+  signOutBtn.onclick = () => au.signOut(auth);
+  $('#userChip').onclick = e => showMenu(e.currentTarget, [
+    { label: auth.currentUser?.email || '', disabled: true, action: () => {} },
+    { label: 'Cerrar sesión', action: () => au.signOut(auth).then(() => location.reload()) },
+  ]);
+
+  return new Promise(resolve => {
+    au.onAuthStateChanged(auth, user => {
+      if (user && allowed(user)) {
+        signedInName = user.displayName || user.email;
+        renderUser();
+        gate.hidden = true;
+        resolve(user);
+        return;
+      }
+      gate.hidden = false;
+      signOutBtn.hidden = !user;
+      msg.textContent = user ? `La cuenta ${user.email || ''} no tiene acceso. Entra con tu correo ${domain ? '@' + domain : 'de la empresa'}.` : '';
+    });
+  });
 }
 
 // Modo de prueba: guarda en este navegador
@@ -674,10 +723,10 @@ async function start() {
       console.error(err);
       const denied = err?.code === 'permission-denied';
       showBanner(denied
-        ? 'La base de datos no permite el acceso. Hay que publicar las reglas de Firestore (ver instrucciones del README).'
+        ? (loginMicrosoft ? 'Tu cuenta no tiene permiso para ver este tablero.' : 'La base de datos no permite el acceso. Hay que publicar las reglas de Firestore (ver instrucciones del README).')
         : 'Problema de conexión con la base de datos: ' + (err?.message || err), 'error');
     });
-  try { if (!localStorage.getItem(USER_KEY)) askName(true); } catch {}
+  try { if (!signedInName && !localStorage.getItem(USER_KEY)) askName(true); } catch {}
 }
 
 start();

@@ -8,3 +8,12 @@ export const firebaseConfig = {
   messagingSenderId: "670983517801",
   appId: "1:670983517801:web:f2918705cfdc983870d4f8"
 };
+
+// Inicio de sesión con correo corporativo de Microsoft.
+// En null, cualquiera con el enlace entra sin iniciar sesión.
+// Para activarlo:
+// export const loginMicrosoft = {
+//   tenant: "ID-del-directorio-de-Microsoft-Entra",  // o "organizations"
+//   domain: "miempresa.com"                          // solo se aceptan correos de este dominio
+// };
+export const loginMicrosoft = null;
