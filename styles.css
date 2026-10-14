@@ -1,13 +1,18 @@
 :root {
-  --bg: #f4f5f7;
+  --bg: #f7f4f4;
   --surface: #ffffff;
   --surface-2: #ebedf1;
-  --cell: #e9ecf1;
+  --cell: #eee8e8;
   --text: #1c2230;
   --muted: #687085;
   --border: #d5d9e2;
-  --accent: #2f6fed;
+  --accent: #c8102e;
   --accent-text: #ffffff;
+  --topbar-bg: #b00e28;
+  --topbar-text: #ffffff;
+  --topbar-control: rgba(255, 255, 255, .14);
+  --topbar-border: rgba(255, 255, 255, .32);
+  --topbar-hover: rgba(255, 255, 255, .24);
   --danger: #d93036;
   --ok: #1f8a4c;
   --warn-bg: #fff5d6;
@@ -28,7 +33,8 @@
     --text: #e7e9ee;
     --muted: #9aa2b4;
     --border: #343a47;
-    --accent: #5b8cff;
+    --accent: #ff5a6e;
+    --topbar-bg: #7a0a1c;
     --danger: #ff6b6f;
     --ok: #4cc38a;
     --warn-bg: #3a2f0b;
@@ -41,7 +47,7 @@
 }
 :root[data-theme="dark"] {
   --bg: #14171d; --surface: #1f232c; --surface-2: #2a2f3a; --cell: #191c23; --text: #e7e9ee;
-  --muted: #9aa2b4; --border: #343a47; --accent: #5b8cff; --danger: #ff6b6f; --ok: #4cc38a;
+  --muted: #9aa2b4; --border: #343a47; --accent: #ff5a6e; --topbar-bg: #7a0a1c; --danger: #ff6b6f; --ok: #4cc38a;
   --warn-bg: #3a2f0b; --warn-text: #f5d77a; --error-bg: #3d1618; --error-text: #ffb4b4;
   --shadow: 0 1px 2px rgba(0, 0, 0, .4); color-scheme: dark;
 }
@@ -63,8 +69,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Barra superior */
 .topbar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
-  padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 10px 16px; background: var(--topbar-bg, var(--surface)); color: var(--topbar-text, var(--text));
+  border-bottom: 1px solid var(--border);
 }
+.topbar .btn, .topbar .user-chip, .topbar input[type="search"], .topbar select {
+  background: var(--topbar-control, var(--surface)); color: inherit; border-color: var(--topbar-border, var(--border));
+}
+.topbar .btn:hover { background: var(--topbar-hover, var(--surface-2)); }
+.topbar input::placeholder { color: inherit; opacity: .7; }
+.topbar select option { color: var(--text); background: var(--surface); }
 .board-title {
   flex: 1 1 220px; min-width: 0; font-size: 20px; font-weight: 700;
   border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 4px 6px;
@@ -72,7 +85,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .board-title:hover, .board-title:focus { border-color: var(--border); background: var(--bg); outline: none; }
 .tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .tools input[type="search"], .tools select {
-  height: 34px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); padding: 0 10px; max-width: 200px;
+  height: 34px; border: 1px solid var(--topbar-border, var(--border)); border-radius: 8px; background: var(--topbar-control, var(--bg)); padding: 0 10px; max-width: 200px;
 }
 .btn {
   height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border);
