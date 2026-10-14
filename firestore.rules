@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Cualquier persona con el enlace del tablero puede verlo y moverlo.
+    match /tableros/{tablero} {
+      allow read, write: if true;
+      match /tarjetas/{tarjeta} {
+        allow read, write: if true;
+      }
+    }
+  }
+}
