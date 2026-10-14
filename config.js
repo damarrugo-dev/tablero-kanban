@@ -17,4 +17,7 @@ export const firebaseConfig = {
 //   dominio: "miempresa.com" // solo se aceptan correos de este dominio
 //   // tenant: "..."         // solo para "microsoft": ID del directorio de Microsoft Entra
 // };
-export const login = null;
+export const login = {
+  metodo: "correo",
+  dominio: "hitss.com"
+};
