@@ -243,6 +243,11 @@ textarea { resize: vertical; }
 .login-box p { margin: 0; color: var(--muted); }
 .ms-btn { display: inline-flex; align-items: center; gap: 10px; height: 42px; padding: 0 18px; font-weight: 600; }
 .login-msg { color: var(--danger) !important; font-size: 13px; min-height: 1em; }
+.login-msg.ok { color: var(--ok) !important; }
+.login-form { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.login-form[hidden], #loginMs[hidden] { display: none; }
+.login-form input { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--bg); }
+.login-form .btn { height: 42px; font-weight: 600; }
 
 @media (max-width: 720px) {
   :root { --lane-w: 110px; --col-w: 240px; }

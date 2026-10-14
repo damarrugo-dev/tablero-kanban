@@ -30,15 +30,21 @@
     <p class="loading">Cargando tablero…</p>
   </main>
 
-  <!-- Pantalla de inicio de sesión (solo si config.js activa loginMicrosoft) -->
+  <!-- Pantalla de inicio de sesión (solo si config.js activa login) -->
   <div id="loginGate" class="login-gate" hidden>
     <div class="login-box">
       <h1>Tablero Kanban</h1>
       <p>Entra con tu correo <strong id="loginDomain"></strong> para ver y mover las tarjetas.</p>
-      <button id="loginBtn" class="btn primary ms-btn">
-        <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
-        Entrar con Microsoft
-      </button>
+      <form id="loginEmailForm" class="login-form" hidden>
+        <input id="loginEmail" type="email" required placeholder="tu.nombre@empresa.com" autocomplete="email" aria-label="Correo de la empresa">
+        <button id="loginSend" class="btn primary">Enviarme el enlace para entrar</button>
+      </form>
+      <div id="loginMs" hidden>
+        <button id="loginBtn" type="button" class="btn primary ms-btn">
+          <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+          Entrar con Microsoft
+        </button>
+      </div>
       <p id="loginMsg" class="login-msg" role="alert"></p>
       <button id="loginSignOut" class="btn" hidden>Usar otra cuenta</button>
     </div>
