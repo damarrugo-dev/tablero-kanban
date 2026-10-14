@@ -833,8 +833,26 @@ async function share() {
   if (store.mode === 'local') toast('Ojo: en modo de prueba los demás no verán tus cambios.');
 }
 
+// ---------- Modo claro / oscuro (se recuerda en cada navegador) ----------
+function renderThemeBtn() {
+  const dark = document.documentElement.dataset.theme === 'dark';
+  const btn = $('#themeBtn');
+  btn.textContent = dark ? '☀' : '☾';
+  btn.title = dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+  btn.setAttribute('aria-label', btn.title);
+}
+function toggleTheme() {
+  const dark = document.documentElement.dataset.theme !== 'dark';
+  if (dark) document.documentElement.dataset.theme = 'dark';
+  else delete document.documentElement.dataset.theme;
+  try { localStorage.setItem('kanban:tema', dark ? 'dark' : 'light'); } catch {}
+  renderThemeBtn();
+}
+
 // ---------- Inicio ----------
 function wireUi() {
+  $('#themeBtn').onclick = toggleTheme;
+  renderThemeBtn();
   $('#addColumn').onclick = addColumn;
   $('#addLane').onclick = addLane;
   $('#shareBtn').onclick = share;
