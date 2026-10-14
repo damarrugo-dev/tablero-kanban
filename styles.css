@@ -24,34 +24,8 @@
   --col-w: 280px;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #14171d;
-    --surface: #1f232c;
-    --surface-2: #2a2f3a;
-    --cell: #191c23;
-    --text: #e7e9ee;
-    --muted: #9aa2b4;
-    --border: #343a47;
-    --accent: #ff5a6e;
-    --topbar-bg: #7a0a1c;
-    --danger: #ff6b6f;
-    --ok: #4cc38a;
-    --warn-bg: #3a2f0b;
-    --warn-text: #f5d77a;
-    --error-bg: #3d1618;
-    --error-text: #ffb4b4;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .4);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #14171d; --surface: #1f232c; --surface-2: #2a2f3a; --cell: #191c23; --text: #e7e9ee;
-  --muted: #9aa2b4; --border: #343a47; --accent: #ff5a6e; --topbar-bg: #7a0a1c; --danger: #ff6b6f; --ok: #4cc38a;
-  --warn-bg: #3a2f0b; --warn-text: #f5d77a; --error-bg: #3d1618; --error-text: #ffb4b4;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .4); color-scheme: dark;
-}
 
+/* Siempre en tema claro con la paleta roja corporativa */
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
