@@ -5,7 +5,7 @@ service cloud.firestore {
     function esDeLaEmpresa() {
       return request.auth != null
         && request.auth.token.email is string
-        && request.auth.token.email.lower().matches('.*@hitss[.]com$')
+        && request.auth.token.email.lower().matches('.*@(hitss|anava)[.]com$')
         // correo confirmado (enlace al correo) o cuenta de Microsoft
         && (request.auth.token.email_verified == true
             || request.auth.token.firebase.sign_in_provider == 'microsoft.com');

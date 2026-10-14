@@ -177,9 +177,9 @@ async function createFirebaseStore(cfg) {
 async function signIn(app, V) {
   const au = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
   const auth = au.getAuth(app);
-  const domain = (login.dominio || '').toLowerCase().replace(/^@/, '');
-  const domainText = domain ? `@${domain}` : 'de la empresa';
-  const allowed = email => !domain || (email || '').toLowerCase().endsWith('@' + domain);
+  const domains = [].concat(login.dominios || login.dominio || []).map(d => d.toLowerCase().trim().replace(/^@/, '')).filter(Boolean);
+  const domainText = domains.length ? domains.map(d => '@' + d).join(' o ') : 'de la empresa';
+  const allowed = email => !domains.length || domains.some(d => (email || '').toLowerCase().endsWith('@' + d));
   const EMAIL_KEY = 'kanban:correo-para-entrar';
 
   const gate = $('#loginGate');

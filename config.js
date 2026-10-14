@@ -14,10 +14,10 @@ export const firebaseConfig = {
 // Para activarlo:
 // export const login = {
 //   metodo: "correo",        // "correo": llega un enlace al correo | "microsoft": cuenta de Microsoft
-//   dominio: "miempresa.com" // solo se aceptan correos de este dominio
+//   dominios: ["miempresa.com"] // solo se aceptan correos de estos dominios
 //   // tenant: "..."         // solo para "microsoft": ID del directorio de Microsoft Entra
 // };
 export const login = {
   metodo: "correo",
-  dominio: "hitss.com"
+  dominios: ["hitss.com", "anava.com"]
 };
