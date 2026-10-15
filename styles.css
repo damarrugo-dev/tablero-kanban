@@ -112,6 +112,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   flex: 1; overflow: auto; padding: 0 16px 16px;
   display: grid;
   grid-template-columns: var(--lane-w) repeat(var(--ncols, 1), var(--col-w));
+  grid-auto-rows: max-content; /* cada carril crece con sus tarjetas */
   align-content: start; gap: 8px;
 }
 .loading { grid-column: 1 / -1; color: var(--muted); padding: 24px 0; }
@@ -142,10 +143,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .icon-btn.sm { width: 22px; height: 22px; font-size: 12px; }
 
 .cell {
-  background: var(--cell); border-radius: 10px; padding: 8px; min-height: 120px;
+  background: var(--cell); border-radius: 10px; padding: 8px; min-height: 120px; min-width: 0;
   display: flex; flex-direction: column; gap: 6px;
 }
-.cards { display: flex; flex-direction: column; gap: 8px; min-height: 40px; flex: 1; }
+.cards { display: flex; flex-direction: column; gap: 8px; min-height: 40px; flex: 1 0 auto; }
 .add-card {
   border: 1px dashed var(--border); background: transparent; border-radius: 8px;
   padding: 6px; color: var(--muted); cursor: pointer; text-align: left;
@@ -157,6 +158,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: var(--surface); border-radius: 8px; padding: 10px 10px 8px 12px;
   box-shadow: var(--shadow); border: 1px solid var(--border); border-left: 4px solid var(--card-color);
   cursor: grab; display: flex; flex-direction: column; gap: 6px; user-select: none;
+  flex-shrink: 0; /* la tarjeta nunca se aplasta: el carril crece con su contenido */
 }
 .card:hover { border-color: var(--accent); border-left-color: var(--card-color); }
 .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
